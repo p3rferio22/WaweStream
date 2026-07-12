@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>WaveStream Desktop</title>
+    <style>
+        * { box-sizing: border-box; }
+        :root {
+            --bg-main: #070a13;
+            --bg-sidebar: #030509;
+            --bg-card: #0f1626;
+            --bg-card-hover: #17223b;
+            --blue-neon: #3b82f6;
+            --red-like: #ef4444;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+        }
+
+        body {
+            background-color: var(--bg-main); color: var(--text-main);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; user-select: none;
+        }
+
+        /* ТАЙТЛБАР */
+        .title-bar { height: 32px; background-color: var(--bg-sidebar); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #131a2e; -webkit-app-region: drag; z-index: 999; }
+        .title-bar-title { font-size: 12px; font-weight: 600; color: var(--text-muted); margin-left: 16px; }
+        .title-bar-controls { display: flex; height: 100%; -webkit-app-region: no-drag; }
+        .win-btn { width: 46px; height: 100%; background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+        .win-btn:hover { background-color: #1e293b; color: var(--text-main); }
+        .win-btn.close:hover { background-color: var(--red-like); color: white; }
+
+        .app-body { display: flex; flex: 1; height: calc(100vh - 32px); overflow: hidden; position: relative; z-index: 1; }
+
+        /* САЙДБАР */
+        .sidebar { width: 240px; background-color: var(--bg-sidebar); padding: 24px 20px 100px 20px; display: flex; flex-direction: column; border-right: 1px solid #131a2e; }
+        .sidebar-top { display: flex; flex-direction: column; gap: 20px; flex: 1; overflow-y: auto; }
+        .sidebar-bottom { padding-top: 15px; border-top: 1px solid #131a2e; margin-top: auto; }
+        
+        .logo { font-size: 20px; font-weight: 800; color: var(--blue-neon); letter-spacing: -0.5px; margin-bottom: 10px; text-shadow: 0 0 12px rgba(59, 130, 246, 0.3); }
+        
+        .user-profile-section { display: flex; align-items: center; gap: 12px; padding-bottom: 20px; border-bottom: 1px solid #131a2e; margin-bottom: 5px; cursor: pointer; transition: opacity 0.2s; }
+        .user-profile-section:hover { opacity: 0.8; }
+        .avatar-placeholder { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, var(--blue-neon), #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; overflow: hidden; }
+        .avatar-placeholder img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info { display: flex; flex-direction: column; }
+        .user-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+        .user-status { font-size: 11px; color: var(--text-muted); }
+
+        .menu-item { font-size: 14px; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: color 0.2s; padding: 6px 0; }
+        .menu-item:hover, .menu-item.active { color: var(--text-main); }
+        
+        .playlists-header { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #4b5563; margin-top: 15px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+        .btn-add-playlist { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 20px; padding: 0 5px; line-height: 1; transition: color 0.2s, transform 0.1s; }
+        .btn-add-playlist:hover { color: var(--blue-neon); transform: scale(1.2); }
+        .playlists-list { display: flex; flex-direction: column; gap: 10px; }
+        .playlist-item { font-size: 13px; color: var(--text-muted); cursor: pointer; padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .playlist-item:hover, .playlist-item.active { color: var(--text-main); }
+
+        /* КОНТЕНТ */
+        .main-content { flex: 1; padding: 30px; display: flex; flex-direction: column; background: linear-gradient(to bottom, #111827 0%, var(--bg-main) 40%); overflow-y: auto; padding-bottom: 140px; }
+        .downloader-box { background: rgba(3, 5, 9, 0.4); padding: 20px; border-radius: 12px; margin-bottom: 25px; backdrop-filter: blur(10px); border: 1px solid rgba(59, 130, 246, 0.15); }
+        .downloader-box h4 { margin: 0 0 12px 0; font-size: 15px; font-weight: 600;}
+        .search-row { display: flex; gap: 12px; align-items: center; }
+        input[type="text"], select { flex: 1; padding: 12px 20px; background: #0f172a; border: 1px solid #1e293b; color: white; border-radius: 8px; font-size: 14px; outline: none; }
+        input[type="text"]:focus, select:focus { border-color: var(--blue-neon); }
+        .btn-primary { background-color: var(--blue-neon); color: white; border: none; padding: 0 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; height: 44px; }
+        .btn-primary:hover { background-color: #60a5fa; }
+
+        .playback-controls-panel { background: #0f1626; border: 1px solid #1e293b; padding: 14px 20px; border-radius: 10px; margin-bottom: 25px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; }
+        .control-group { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .toggle-btn { background: #1e293b; color: var(--text-muted); border: 1px solid #334155; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .toggle-btn.active { background: var(--blue-neon); color: white; border-color: var(--blue-neon); box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+        .number-input { width: 50px; background: #070a13; border: 1px solid #334155; color: white; padding: 5px; border-radius: 4px; text-align: center; font-size: 13px; outline: none; }
+        .queue-badge { background: #334155; padding: 2px 8px; border-radius: 10px; font-size: 11px; color: var(--text-main); }
+
+        .section-title { font-size: 20px; font-weight: 700; margin: 0 0 16px 0; }
+        .tracks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
+        .track-card { background: var(--bg-card); padding: 14px; border-radius: 10px; cursor: pointer; position: relative; border: 1px solid rgba(255, 255, 255, 0.02); transition: background 0.2s, transform 0.2s; }
+        .track-card:hover { background: var(--bg-card-hover); transform: translateY(-2px); }
+        .track-artwork { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; margin-bottom: 12px; background: #1e293b; }
+        .track-title { font-size: 13px; font-weight: 600; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-artist { font-size: 12px; color: var(--text-muted); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .track-uploader { font-size: 10px; color: var(--blue-neon); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+
+        .btn-add-to-p { position: absolute; top: 20px; right: 20px; background: rgba(3, 5, 9, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; opacity: 0; transition: all 0.2s; z-index: 10; }
+        .btn-like { position: absolute; top: 20px; left: 20px; background: rgba(3, 5, 9, 0.9); border: 1px solid rgba(255, 255, 255, 0.1); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; opacity: 0; transition: all 0.2s; z-index: 10; }
+        .track-card:hover .btn-add-to-p, .track-card:hover .btn-like { opacity: 1; }
+        .btn-add-to-p:hover { background: var(--blue-neon); border-color: var(--blue-neon); }
+        .btn-like:hover, .btn-like.active { background: var(--red-like); border-color: var(--red-like); opacity: 1; }
+
+        /* МОДАЛКИ */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 100000; display: none; }
+        .modal-content { background: #0f1626; border: 1px solid #1e293b; padding: 24px; border-radius: 12px; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .modal-content h3 { margin: 0 0 16px 0; font-size: 18px; font-weight: 700; text-align: center; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-modal { padding: 10px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+        .btn-modal.cancel { background: #1e293b; color: var(--text-main); }
+        .btn-modal.confirm { background: var(--blue-neon); color: white; }
+        
+        /* ПЛЕЕР */
+        .player-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 90px; background: var(--bg-sidebar); border-top: 1px solid #131a2e; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 998; }
+        .current-track-info { display: flex; align-items: center; gap: 12px; width: 30%; min-width: 180px; }
+        .current-mini-art { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; background: #1f2937; }
+        .player-center-controls { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 40%; }
+        .control-buttons { display: flex; align-items: center; gap: 20px; }
+        .icon-btn { background: none; border: none; padding: 0; color: var(--text-muted); font-size: 18px; cursor: pointer; }
+        .icon-btn:hover { color: var(--text-main); transform: scale(1.1); }
+        .play-btn { font-size: 28px; color: var(--blue-neon); }
+        .progress-container { display: flex; align-items: center; width: 100%; gap: 10px; font-size: 11px; color: var(--text-muted); }
+        input[type="range"] { -webkit-appearance: none; width: 100%; background: #1e293b; height: 4px; border-radius: 2px; outline: none; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: var(--blue-neon); }
+        .player-right-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: 30%; }
+        .volume-slider { width: 100px !important; }
+
+        .playlist-dropdown { position: fixed; background: #0f1626; border: 1px solid #1e293b; border-radius: 6px; display: none; z-index: 99999; padding: 6px 0; min-width: 160px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .dropdown-item { padding: 8px 14px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+        .dropdown-item:hover { background: #17223b; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="title-bar">
+        <div class="title-bar-title" id="lbl-app-title">WaveStream Desktop</div>
+        <div class="title-bar-controls">
+            <button id="win-min" class="win-btn">─</button>
+            <button id="win-max" class="win-btn">▢</button>
+            <button id="win-close" class="win-btn close">✕</button>
+        </div>
+    </div>
+
+    <audio id="audio-player" style="display: none;"></audio>
+
+    <div class="app-body">
+        <div class="sidebar">
+            <div class="sidebar-top">
+                <div class="logo">WaveStream</div>
+                
+                <div id="btn-profile" class="user-profile-section">
+                    <div class="avatar-placeholder" id="ui-avatar">👤</div>
+                    <div class="user-info">
+                        <span class="user-name" id="ui-username">Гость</span>
+                        <span class="user-status" id="ui-userstatus">Войти в аккаунт</span>
+                    </div>
+                </div>
+
+                <div id="menu-all-tracks" class="menu-item active"><span id="lbl-menu-all">🎵 Моя медиатека</span></div>
+                <div id="menu-shared-tracks" class="menu-item"><span id="lbl-menu-shared">🌐 Общие треки</span></div>
+                <div id="menu-favorites" class="menu-item"><span id="lbl-menu-fav">❤️ Избранное</span></div>
+                
+                <div class="playlists-header">
+                    <span id="lbl-playlists-header">Плейлисты</span>
+                    <button id="btn-create-p" class="btn-add-playlist">+</button>
+                </div>
+                <div id="playlists-list" class="playlists-list"></div>
+            </div>
+            
+            <div class="sidebar-bottom">
+                <div id="btn-settings" class="menu-item"><span id="lbl-menu-settings">⚙️ Настройки</span></div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="downloader-container" class="downloader-box">
+                <h4 id="lbl-yt-title">Добавить трек по ссылке YouTube</h4>
+                <div class="search-row">
+                    <input type="text" id="yt-url" placeholder="Вставьте ссылку на видео...">
+                    <button id="btn-download" class="btn-primary">Загрузить</button>
+                </div>
+                <div style="margin-top: 10px; font-size: 12px; display: flex; align-items: center; gap: 8px; color: var(--text-muted);">
+                    <input type="checkbox" id="chk-share-public" style="cursor: pointer;">
+                    <label for="chk-share-public" style="cursor: pointer;" id="lbl-share-public">Опубликовать в общие треки (требуется вход)</label>
+                </div>
+            </div>
+
+            <div class="playback-controls-panel">
+                <div class="control-group">
+                    <button id="btn-toggle-shuffle" class="toggle-btn">🔀 Перемешать</button>
+                    <button id="btn-toggle-repeat-track" class="toggle-btn">🔂 Повтор трека</button>
+                </div>
+                <div class="control-group">
+                    <span id="lbl-loops-count">Кругов списка:</span>
+                    <input type="number" id="input-loop-count" class="number-input" value="1" min="1">
+                    <span id="loop-counter-status" class="queue-badge">Круг: 1/1</span>
+                </div>
+                <div class="control-group">
+                    <span id="lbl-in-queue-prefix">В очереди: <span id="queue-count" class="queue-badge">0</span></span>
+                    <button id="btn-play-all" class="toggle-btn active">▶ Играть всё</button>
+                </div>
+            </div>
+
+            <h2 id="lib-title" class="section-title">Твоя медиатека</h2>
+            <div id="tracks-grid" class="tracks-grid"></div>
+        </div>
+    </div>
+
+    <div class="player-bar">
+        <div class="current-track-info">
+            <img id="player-art" class="current-mini-art" src="" style="display: none;">
+            <div style="overflow: hidden;">
+                <div id="player-title" style="font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Ничего не играет</div>
+                <div id="player-artist" style="color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+            </div>
+        </div>
+        <div class="player-center-controls">
+            <div class="control-buttons">
+                <button id="btn-prev" class="icon-btn">⏮</button>
+                <button id="btn-play-pause" class="icon-btn play-btn">▶</button>
+                <button id="btn-next" class="icon-btn">⏭</button>
+            </div>
+            <div class="progress-container">
+                <span id="time-current">0:00</span>
+                <input type="range" id="progress-bar" min="0" max="100" value="0">
+                <span id="time-total">0:00</span>
+            </div>
+        </div>
+        <div class="player-right-controls">
+            <span style="font-size: 14px; color: var(--text-muted);">🔊</span>
+            <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.01" value="0.7">
+        </div>
+    </div>
+
+    <div id="playlist-menu" class="playlist-dropdown"></div>
+
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="auth-title">Вход в аккаунт</h3>
+            <p id="lbl-auth-sub" style="font-size: 12px; color: var(--text-muted); text-align: center; margin-bottom: 15px;">
+                Войдите, чтобы делиться музыкой и синхронизировать профиль
+            </p>
+
+            <button id="btn-auth-google" style="height: 40px; width: 100%; background: white; color: black; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width: 18px;">
+                <span id="lbl-auth-google-text">Войти через Google</span>
+            </button>
+            <div id="lbl-auth-or" style="text-align: center; color: var(--text-muted); font-size: 12px; margin-bottom: 10px;">или по email</div>
+
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="email" id="auth-email" placeholder="Email..." style="padding: 10px; background: #070a13; border: 1px solid #334155; color: white; border-radius: 6px; outline: none;">
+                <input type="password" id="auth-password" placeholder="Пароль..." style="padding: 10px; background: #070a13; border: 1px solid #334155; color: white; border-radius: 6px; outline: none;">
+            </div>
+
+            <p id="auth-error" style="color: var(--red-like); font-size: 12px; margin-top: 10px; text-align: center; display: none;"></p>
+
+            <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+                <button id="btn-auth-submit" class="btn-primary" style="height: 40px; width: 100%;">Войти</button>
+                <button id="btn-auth-toggle" style="background: none; border: none; color: var(--blue-neon); font-size: 12px; cursor: pointer;">
+                    Нет аккаунта? Зарегистрироваться
+                </button>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button id="btn-auth-cancel" class="btn-modal cancel" style="width: 100%;" onclick="document.getElementById('auth-modal').style.display='none'">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-content" style="text-align: center;">
+            <h3 id="lbl-profile-title">Профиль пользователя</h3>
+            
+            <div style="margin: 15px auto; width: 80px; height: 80px; border-radius: 50%; overflow: hidden; background: #1e293b; display: flex; align-items: center; justify-content: center;" id="modal-avatar-box">
+                <span id="modal-avatar-placeholder" style="font-size: 32px;">👤</span>
+            </div>
+
+            <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+            <button id="btn-change-photo" onclick="document.getElementById('avatar-file-input').click()" style="font-size: 12px; background: #1e293b; color: white; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; cursor: pointer;">
+                Изменить фото
+            </button>
+
+            <input type="text" id="profile-username-input" placeholder="Никнейм..." style="margin-top: 15px; width: calc(100% - 20px); padding: 8px 10px; background: #070a13; border: 1px solid #334155; color: white; border-radius: 6px; outline: none;">
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button id="btn-save-profile" class="btn-modal confirm" style="flex: 1;">Сохранить</button>
+                <button id="btn-logout" class="btn-modal cancel" style="background: rgba(239,68,68,0.2); color: var(--red-like); flex: 1;">Выйти</button>
+            </div>
+
+            <button id="btn-profile-close" class="btn-modal cancel" style="width: 100%; margin-top: 10px;" onclick="document.getElementById('profile-modal').style.display='none'">Закрыть</button>
+        </div>
+    </div>
+
+    <div id="playlist-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="lbl-modal-playlist-title">Новый плейлист</h3>
+            <input type="text" id="modal-playlist-name" placeholder="Название..." style="width: calc(100% - 20px); margin-bottom: 10px; padding: 10px; background: #070a13; border: 1px solid #334155; color: white; border-radius: 6px;">
+            <div class="modal-actions">
+                <button id="btn-playlist-cancel" class="btn-modal cancel" onclick="document.getElementById('playlist-modal').style.display='none'">Отмена</button>
+                <button id="btn-modal-confirm" class="btn-modal confirm">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="lbl-settings-title">Настройки</h3>
+            <div style="margin-bottom: 15px;">
+                <label id="lbl-lang-select" style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px;">Язык приложения</label>
+                <select id="lang-select" style="width: 100%;">
+                    <option value="ru">Русский</option>
+                    <option value="en">English</option>
+                    <option value="uk">Українська</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button id="btn-close-settings" class="btn-modal confirm">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. СЛОВАРЬ И ЛОКАЛИЗАЦИЯ (I18N) ---
+        const translations = {
+            ru: {
+                appTitle: "WaveStream Desktop", guest: "Гость", loginStatus: "Войти в аккаунт", onlineStatus: "В сети",
+                myLib: "🎵 Моя медиатека", sharedLib: "🌐 Общие треки", favLib: "❤️ Избранное",
+                playlistsHeader: "Плейлисты", settings: "⚙️ Настройки", ytBoxTitle: "Добавить трек по ссылке YouTube",
+                ytPlaceholder: "Вставьте ссылку на видео...", btnDownload: "Загрузить", btnDownloading: "Загрузка...",
+                sharePublicCheck: "Опубликовать в общие треки (требуется вход)",
+                btnShuffle: "🔀 Перемешать", btnRepeat: "🔂 Повтор трека", loopsLabel: "Кругов списка:",
+                loopCounter: "Круг: {curr}/{total}", inQueuePrefix: "В очереди:", btnPlayAll: "▶ Играть всё",
+                libTitleLocal: "Твоя медиатека", libTitleShared: "Общие треки (Сообщество)", libTitleFav: "Избранное",
+                emptyLib: "Здесь пока пусто.", nothingPlaying: "Ничего не играет",
+                modalPlaylistTitle: "Новый плейлист", playlistNamePlaceholder: "Название...", btnCancel: "Отмена", btnCreate: "Создать", btnClose: "Закрыть",
+                authTitleLogin: "Вход в аккаунт", authTitleReg: "Регистрация", authSub: "Войдите, чтобы делиться музыкой и синхронизировать профиль",
+                authGoogle: "Войти через Google", authOr: "или по email", authBtnLogin: "Войти", authBtnReg: "Создать аккаунт",
+                authToggleToReg: "Нет аккаунта? Зарегистрироваться", authToggleToLogin: "Уже есть аккаунт? Войти",
+                profileTitle: "Профиль пользователя", changePhoto: "Изменить фото", profileNameHolder: "Никнейм...", btnSave: "Сохранить", btnLogout: "Выйти",
+                settingsTitle: "Настройки", langLabel: "Язык приложения", noPlaylistsAvailable: "Нет плейлистов"
+            },
+            uk: {
+                appTitle: "WaveStream Desktop", guest: "Гість", loginStatus: "Увійти в акаунт", onlineStatus: "В мережі",
+                myLib: "🎵 Моя медіатека", sharedLib: "🌐 Спільні треки", favLib: "❤️ Улюблене",
+                playlistsHeader: "Плейлисти", settings: "⚙️ Налаштування", ytBoxTitle: "Додати трек за посиланням YouTube",
+                ytPlaceholder: "Вставте посилання на відео...", btnDownload: "Завантажити", btnDownloading: "Завантаження...",
+                sharePublicCheck: "Опублікувати в спільні треки (потрібен вхід)",
+                btnShuffle: "🔀 Перемішати", btnRepeat: "🔂 Повторити трек", loopsLabel: "Кіл списку:",
+                loopCounter: "Коло: {curr}/{total}", inQueuePrefix: "У черзі:", btnPlayAll: "▶ Грати все",
+                libTitleLocal: "Твоя медіатека", libTitleShared: "Спільні треки (Спільнота)", libTitleFav: "Улюблене",
+                emptyLib: "Тут поки порожньо.", nothingPlaying: "Нічого не грає",
+                modalPlaylistTitle: "Новий плейлист", playlistNamePlaceholder: "Назва...", btnCancel: "Скасувати", btnCreate: "Створити", btnClose: "Закрити",
+                authTitleLogin: "Вхід в акаунт", authTitleReg: "Реєстрація", authSub: "Увійдіть, щоб ділитися музикою та синхронізувати профіль",
+                authGoogle: "Увійти через Google", authOr: "або по email", authBtnLogin: "Увійти", authBtnReg: "Створити акаунт",
+                authToggleToReg: "Немає акаунту? Зареєструватися", authToggleToLogin: "Вже є акаунт? Увійти",
+                profileTitle: "Профіль користувача", changePhoto: "Змінити фото", profileNameHolder: "Нікнейм...", btnSave: "Зберегти", btnLogout: "Вийти",
+                settingsTitle: "Налаштування", langLabel: "Мова застосунку", noPlaylistsAvailable: "Немає плейлистів"
+            },
+            en: {
+                appTitle: "WaveStream Desktop", guest: "Guest", loginStatus: "Log in", onlineStatus: "Online",
+                myLib: "🎵 My Library", sharedLib: "🌐 Shared Tracks", favLib: "❤️ Favorites",
+                playlistsHeader: "Playlists", settings: "⚙️ Settings", ytBoxTitle: "Add track via YouTube URL",
+                ytPlaceholder: "Paste video link here...", btnDownload: "Download", btnDownloading: "Downloading...",
+                sharePublicCheck: "Publish to shared tracks (login required)",
+                btnShuffle: "🔀 Shuffle", btnRepeat: "🔂 Repeat Track", loopsLabel: "Loops count:",
+                loopCounter: "Loop: {curr}/{total}", inQueuePrefix: "In queue:", btnPlayAll: "▶ Play All",
+                libTitleLocal: "Your Library", libTitleShared: "Shared Tracks (Community)", libTitleFav: "Favorites",
+                emptyLib: "Nothing here yet.", nothingPlaying: "Nothing playing",
+                modalPlaylistTitle: "New Playlist", playlistNamePlaceholder: "Name...", btnCancel: "Cancel", btnCreate: "Create", btnClose: "Close",
+                authTitleLogin: "Login", authTitleReg: "Register", authSub: "Log in to share music and sync your profile",
+                authGoogle: "Log in with Google", authOr: "or via email", authBtnLogin: "Log in", authBtnReg: "Create account",
+                authToggleToReg: "No account? Register", authToggleToLogin: "Already have an account? Log in",
+                profileTitle: "User Profile", changePhoto: "Change photo", profileNameHolder: "Nickname...", btnSave: "Save", btnLogout: "Logout",
+                settingsTitle: "Settings", langLabel: "App Language", noPlaylistsAvailable: "No playlists"
+            }
+        };
+
+        let currentLang = 'ru';
+
+        function t(key) { return translations[currentLang][key] || translations['ru'][key] || key; }
+
+        function updateUILanguage() {
+            document.getElementById('lbl-app-title').innerText = t('appTitle');
+            if(!currentUser) {
+                document.getElementById('ui-username').innerText = t('guest');
+                document.getElementById('ui-userstatus').innerText = t('loginStatus');
+            } else {
+                document.getElementById('ui-userstatus').innerText = t('onlineStatus');
+            }
+            document.getElementById('lbl-menu-all').innerText = t('myLib');
+            document.getElementById('lbl-menu-shared').innerText = t('sharedLib');
+            document.getElementById('lbl-menu-fav').innerText = t('favLib');
+            document.getElementById('lbl-playlists-header').innerText = t('playlistsHeader');
+            document.getElementById('lbl-menu-settings').innerText = t('settings');
+            
+            document.getElementById('lbl-yt-title').innerText = t('ytBoxTitle');
+            document.getElementById('yt-url').placeholder = t('ytPlaceholder');
+            const btnDl = document.getElementById('btn-download');
+            if(!btnDl.disabled) btnDl.innerText = t('btnDownload');
+            document.getElementById('lbl-share-public').innerText = t('sharePublicCheck');
+            
+            document.getElementById('btn-toggle-shuffle').innerText = t('btnShuffle');
+            document.getElementById('btn-toggle-repeat-track').innerText = t('btnRepeat');
+            document.getElementById('lbl-loops-count').innerText = t('loopsLabel');
+            document.getElementById('btn-play-all').innerText = t('btnPlayAll');
+            
+            document.getElementById('lbl-modal-playlist-title').innerText = t('modalPlaylistTitle');
+            document.getElementById('modal-playlist-name').placeholder = t('playlistNamePlaceholder');
+            document.getElementById('btn-playlist-cancel').innerText = t('btnCancel');
+            document.getElementById('btn-modal-confirm').innerText = t('btnCreate');
+
+            document.getElementById('auth-title').innerText = isRegisterMode ? t('authTitleReg') : t('authTitleLogin');
+            document.getElementById('lbl-auth-sub').innerText = t('authSub');
+            document.getElementById('lbl-auth-google-text').innerText = t('authGoogle');
+            document.getElementById('lbl-auth-or').innerText = t('authOr');
+            document.getElementById('btn-auth-submit').innerText = isRegisterMode ? t('authBtnReg') : t('authBtnLogin');
+            document.getElementById('btn-auth-toggle').innerText = isRegisterMode ? t('authToggleToLogin') : t('authToggleToReg');
+            document.getElementById('btn-auth-cancel').innerText = t('btnCancel');
+
+            document.getElementById('lbl-profile-title').innerText = t('profileTitle');
+            document.getElementById('btn-change-photo').innerText = t('changePhoto');
+            document.getElementById('profile-username-input').placeholder = t('profileNameHolder');
+            document.getElementById('btn-save-profile').innerText = t('btnSave');
+            document.getElementById('btn-logout').innerText = t('btnLogout');
+            document.getElementById('btn-profile-close').innerText = t('btnClose');
+
+            document.getElementById('lbl-settings-title').innerText = t('settingsTitle');
+            document.getElementById('lbl-lang-select').innerText = t('langLabel');
+            document.getElementById('btn-close-settings').innerText = t('btnClose');
+
+            if(currentQueueIndex === -1 && audioPlayer.paused) document.getElementById('player-title').innerText = t('nothingPlaying');
+
+            refreshCurrentViewTitles();
+            updateQueueStatusUI();
+        }
+
+        // --- 2. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И СОСТОЯНИЯ ---
+        let currentTab = 'local'; // 'local' | 'shared' | 'favorites' | 'playlist'
+        let currentPlaylistData = null;
+        let currentUser = null;
+        let selectedAvatarPath = null;
+        let isRegisterMode = false;
+        
+        let sourceTracks = [];
+        let userPlaylists = [];
+        let favoritesSet = new Set(JSON.parse(localStorage.getItem('fav_tracks') || '[]'));
+        
+        let playbackQueue = [];
+        let currentQueueIndex = -1;
+        let isShuffle = false;
+        let isRepeatTrack = false;
+        let targetLoops = 1;
+        let currentLoopIteration = 1;
+
+        const tracksGrid = document.getElementById('tracks-grid');
+        const audioPlayer = document.getElementById('audio-player');
+        const playlistMenu = document.getElementById('playlist-menu');
+
+        // --- 3. ИНИЦИАЛИЗАЦИЯ (Настройки, Сессия, Библиотека) ---
+        if (window.electronAPI) {
+            window.electronAPI.getSettings().then(settings => {
+                if (settings && settings.language) {
+                    currentLang = settings.language;
+                    document.getElementById('lang-select').value = currentLang;
+                }
+                updateUILanguage();
+            });
+
+            window.electronAPI.getSession().then(async (session) => {
+                if (session && session.user) {
+                    currentUser = session.user;
+                    await loadUserProfile();
+                }
+                updateUILanguage();
+            });
+
+            window.electronAPI.getLibrary();
+            window.electronAPI.getPlaylists();
+        }
+
+        document.getElementById('btn-close-settings').addEventListener('click', () => {
+            currentLang = document.getElementById('lang-select').value;
+            window.electronAPI.saveSettings({ language: currentLang });
+            updateUILanguage();
+            document.getElementById('settings-modal').style.display = 'none';
+        });
+
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            document.getElementById('settings-modal').style.display = 'flex';
+        });
+
+        // --- 4. ПРОФИЛЬ И АВТОРИЗАЦИЯ ---
+        async function loadUserProfile() {
+            if (!currentUser) return;
+            const profile = await window.electronAPI.getProfile(currentUser.id);
+            const uiUsername = document.getElementById('ui-username');
+            const uiAvatar = document.getElementById('ui-avatar');
+            
+            if (profile) {
+                uiUsername.innerText = profile.username || currentUser.email.split('@')[0];
+                if (profile.avatar_url) uiAvatar.innerHTML = `<img src="${profile.avatar_url}">`;
+            } else {
+                uiUsername.innerText = currentUser.email.split('@')[0];
+            }
+            updateUILanguage();
+        }
+
+        document.getElementById('btn-profile').addEventListener('click', () => {
+            if (currentUser) {
+                document.getElementById('profile-username-input').value = document.getElementById('ui-username').innerText;
+                document.getElementById('profile-modal').style.display = 'flex';
+            } else {
+                document.getElementById('auth-modal').style.display = 'flex';
+            }
+        });
+
+        const btnAuthToggle = document.getElementById('btn-auth-toggle');
+        btnAuthToggle.addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById('auth-error').style.display = 'none';
+            updateUILanguage();
+        });
+
+        document.getElementById('btn-auth-submit').addEventListener('click', async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const password = document.getElementById('auth-password').value.trim();
+            const btn = document.getElementById('btn-auth-submit');
+            const errEl = document.getElementById('auth-error');
+
+            if (!email || !password) { errEl.innerText = 'Заполните все поля!'; errEl.style.display = 'block'; return; }
+
+            btn.disabled = true; btn.innerText = t('btnDownloading');
+
+            let res = isRegisterMode ? await window.electronAPI.register({ email, password }) : await window.electronAPI.login({ email, password });
+
+            btn.disabled = false; btn.innerText = isRegisterMode ? t('authBtnReg') : t('authBtnLogin');
+
+            if (res.success) {
+                currentUser = res.user; await loadUserProfile();
+                document.getElementById('auth-modal').style.display = 'none';
+            } else {
+                errEl.innerText = res.message; errEl.style.display = 'block';
+            }
+        });
+
+        document.getElementById('btn-auth-google').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-auth-google');
+            btn.disabled = true; document.getElementById('lbl-auth-google-text').innerText = t('btnDownloading');
+            
+            const res = await window.electronAPI.loginWithGoogle();
+            
+            btn.disabled = false; document.getElementById('lbl-auth-google-text').innerText = t('authGoogle');
+            
+            if (res.success) {
+                currentUser = res.user; await loadUserProfile();
+                document.getElementById('auth-modal').style.display = 'none';
+            } else if (res.message !== 'Окно закрыто') {
+                document.getElementById('auth-error').innerText = res.message; document.getElementById('auth-error').style.display = 'block';
+            }
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            await window.electronAPI.logout();
+            currentUser = null; document.getElementById('ui-avatar').innerHTML = '👤';
+            updateUILanguage();
+            document.getElementById('profile-modal').style.display = 'none';
+        });
+
+        document.getElementById('avatar-file-input').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                selectedAvatarPath = e.target.files[0].path;
+                document.getElementById('modal-avatar-box').innerHTML = `<img src="file://${selectedAvatarPath}" style="width:100%;height:100%;object-fit:cover;">`;
+            }
+        });
+
+        document.getElementById('btn-save-profile').addEventListener('click', async () => {
+            if (!currentUser) return;
+            const res = await window.electronAPI.updateProfile({
+                userId: currentUser.id, username: document.getElementById('profile-username-input').value.trim(), avatarFilePath: selectedAvatarPath
+            });
+            if (res.success) { await loadUserProfile(); document.getElementById('profile-modal').style.display = 'none'; } 
+            else alert('Ошибка сохранения: ' + res.message);
+        });
+
+        // --- 5. ВЛОЖЕНИЯ И ЗАГРУЗКА ---
+        document.getElementById('btn-download').addEventListener('click', async () => {
+            const url = document.getElementById('yt-url').value.trim();
+            const isPublic = document.getElementById('chk-share-public').checked;
+            const btn = document.getElementById('btn-download');
+
+            if (!url) return;
+            if (isPublic && !currentUser) return alert('Для публикации песен войдите в аккаунт!');
+
+            btn.disabled = true; btn.innerText = t('btnDownloading');
+
+            if (isPublic) {
+                const res = await window.electronAPI.uploadSharedTrack({ url, userId: currentUser.id });
+                btn.disabled = false; btn.innerText = t('btnDownload');
+                if (res.success) {
+                    document.getElementById('yt-url').value = '';
+                    if (currentTab === 'shared') loadSharedTracks();
+                } else alert('Ошибка: ' + res.message);
+            } else {
+                window.electronAPI.downloadYoutube(url);
+            }
+        });
+
+        if (window.electronAPI) {
+            window.electronAPI.onDownloadSuccess((tracks) => {
+                document.getElementById('btn-download').disabled = false;
+                document.getElementById('btn-download').innerText = t('btnDownload');
+                document.getElementById('yt-url').value = '';
+                if (currentTab === 'local' || currentTab === 'favorites') {
+                    sourceTracks = tracks || []; rebuildQueue(false); refreshCurrentViewData();
+                }
+            });
+            window.electronAPI.onDownloadError((err) => {
+                document.getElementById('btn-download').disabled = false;
+                document.getElementById('btn-download').innerText = t('btnDownload'); alert("Ошибка: " + err);
+            });
+            window.electronAPI.onLibraryLoaded((tracks) => {
+                sourceTracks = tracks || [];
+                if (currentTab === 'local') { rebuildQueue(true); refreshCurrentViewData(); }
+            });
+            window.electronAPI.onPlaylistsUpdated((playlists) => {
+                userPlaylists = playlists || []; renderPlaylistsSidebar();
+            });
+            window.electronAPI.onPlaylistTracksLoaded((data) => {
+                currentPlaylistData = data; setTab('playlist');
+            });
+        }
+
+        // --- 6. НАВИГАЦИЯ ---
+        function setActiveMenu(id) {
+            document.querySelectorAll('.menu-item, .playlist-item').forEach(el => el.classList.remove('active'));
+            if(id) document.getElementById(id)?.classList.add('active');
+        }
+
+        function refreshCurrentViewTitles() {
+            const titleEl = document.getElementById('lib-title');
+            if (currentTab === 'local') titleEl.innerText = t('libTitleLocal');
+            else if (currentTab === 'shared') titleEl.innerText = t('libTitleShared');
+            else if (currentTab === 'favorites') titleEl.innerText = t('libTitleFav');
+            else if (currentTab === 'playlist' && currentPlaylistData) titleEl.innerText = currentPlaylistData.name;
+        }
+
+        function refreshCurrentViewData() {
+            refreshCurrentViewTitles();
+            let renderList = [];
+            if (currentTab === 'local' || currentTab === 'shared') renderList = sourceTracks;
+            else if (currentTab === 'favorites') renderList = sourceTracks.filter(t => favoritesSet.has(t.id));
+            else if (currentTab === 'playlist' && currentPlaylistData) renderList = currentPlaylistData.tracks;
+            renderGrid(renderList);
+        }
+
+        function setTab(tabName) {
+            currentTab = tabName;
+            if (tabName === 'local') { setActiveMenu('menu-all-tracks'); window.electronAPI.getLibrary(); }
+            else if (tabName === 'favorites') { setActiveMenu('menu-favorites'); refreshCurrentViewData(); }
+            else if (tabName === 'shared') { setActiveMenu('menu-shared-tracks'); loadSharedTracks(); }
+            else if (tabName === 'playlist') { refreshCurrentViewData(); } // Active menu set via sidebar click
+        }
+
+        document.getElementById('menu-all-tracks').addEventListener('click', () => setTab('local'));
+        document.getElementById('menu-shared-tracks').addEventListener('click', () => setTab('shared'));
+        document.getElementById('menu-favorites').addEventListener('click', () => setTab('favorites'));
+
+        async function loadSharedTracks() {
+            const tracks = await window.electronAPI.getSharedTracks();
+            sourceTracks = tracks.map(t => ({
+                id: t.id, title: t.title, artist: t.artist, audioPath: t.audio_url, artworkPath: t.artwork_url,
+                isRemote: true, uploader: t.profiles ? t.profiles.username : 'Неизвестен'
+            }));
+            rebuildQueue(true); refreshCurrentViewData();
+        }
+
+        function renderPlaylistsSidebar() {
+            const container = document.getElementById('playlists-list'); container.innerHTML = '';
+            userPlaylists.forEach(p => {
+                const item = document.createElement('div'); item.className = 'playlist-item'; item.id = 'pl-' + p.id;
+                item.innerText = '📁 ' + p.name;
+                item.addEventListener('click', () => { setActiveMenu(item.id); window.electronAPI.getPlaylistTracks(p.id); });
+                container.appendChild(item);
+            });
+        }
+
+        document.getElementById('btn-create-p').addEventListener('click', () => document.getElementById('playlist-modal').style.display = 'flex');
+        document.getElementById('btn-modal-confirm').addEventListener('click', () => {
+            const name = document.getElementById('modal-playlist-name').value.trim();
+            if(name) { window.electronAPI.createPlaylist(name); document.getElementById('playlist-modal').style.display = 'none'; }
+        });
+
+        // Контекстное меню плейлиста
+        let selectedTrackForPlaylist = null;
+        function showPlaylistMenu(x, y, trackId) {
+            selectedTrackForPlaylist = trackId; playlistMenu.innerHTML = '';
+            if(userPlaylists.length === 0) {
+                const emptyMsg = document.createElement('div'); emptyMsg.className = 'dropdown-item'; emptyMsg.innerText = t('noPlaylistsAvailable');
+                playlistMenu.appendChild(emptyMsg);
+            } else {
+                userPlaylists.forEach(p => {
+                    const item = document.createElement('div'); item.className = 'dropdown-item'; item.innerText = '➕ ' + p.name;
+                    item.addEventListener('click', (e) => {
+                        e.stopPropagation(); window.electronAPI.addTrackToPlaylist(p.id, selectedTrackForPlaylist); playlistMenu.style.display = 'none';
+                    });
+                    playlistMenu.appendChild(item);
+                });
+            }
+            playlistMenu.style.left = `${x}px`; playlistMenu.style.top = `${y}px`; playlistMenu.style.display = 'block';
+        }
+        document.addEventListener('click', () => playlistMenu.style.display = 'none');
+
+        // --- 7. РЕНДЕР СЕТКИ ---
+        function renderGrid(tracks) {
+            tracksGrid.innerHTML = '';
+            if (tracks.length === 0) { tracksGrid.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1; font-size: 13px;">${t('emptyLib')}</p>`; return; }
+
+            tracks.forEach((track) => {
+                const card = document.createElement('div'); card.className = 'track-card';
+                let imgUrl = track.artworkPath || '';
+                if (!track.isRemote && track.artworkPath) imgUrl = `file://${track.artworkPath}`;
+                const isLiked = favoritesSet.has(track.id);
+
+                card.innerHTML = `
+                    <button class="btn-like ${isLiked ? 'active' : ''}">❤️</button>
+                    ${!track.isRemote ? '<button class="btn-add-to-p">+</button>' : ''}
+                    <img class="track-artwork" src="${imgUrl}" onerror="this.style.display='none'">
+                    <p class="track-title" title="${track.title}">${track.title}</p>
+                    <p class="track-artist" title="${track.artist}">${track.artist}</p>
+                    ${track.uploader ? `<p class="track-uploader">👤 ${track.uploader}</p>` : ''}
+                `;
+                
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('.btn-add-to-p') || e.target.closest('.btn-like')) return;
+                    playbackQueue = [...tracks]; const idx = playbackQueue.findIndex(t => t.id === track.id);
+                    if(idx !== -1) playFromQueue(idx);
+                });
+
+                const btnLike = card.querySelector('.btn-like');
+                btnLike.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if(favoritesSet.has(track.id)) { favoritesSet.delete(track.id); btnLike.classList.remove('active'); } 
+                    else { favoritesSet.add(track.id); btnLike.classList.add('active'); }
+                    localStorage.setItem('fav_tracks', JSON.stringify([...favoritesSet]));
+                    if (currentTab === 'favorites') refreshCurrentViewData();
+                });
+
+                if(!track.isRemote) {
+                    const btnAddP = card.querySelector('.btn-add-to-p');
+                    btnAddP.addEventListener('click', (e) => {
+                        e.stopPropagation(); const rect = btnAddP.getBoundingClientRect(); showPlaylistMenu(rect.left, rect.bottom + 5, track.id);
+                    });
+                }
+                tracksGrid.appendChild(card);
+            });
+        }
+
+        // --- 8. ОЧЕРЕДЬ И ПЛЕЕР ---
+        document.getElementById('btn-toggle-shuffle').addEventListener('click', (e) => { isShuffle = !isShuffle; e.target.classList.toggle('active', isShuffle); rebuildQueue(false); });
+        document.getElementById('btn-toggle-repeat-track').addEventListener('click', (e) => { isRepeatTrack = !isRepeatTrack; e.target.classList.toggle('active', isRepeatTrack); });
+        document.getElementById('input-loop-count').addEventListener('input', (e) => { let val = parseInt(e.target.value); targetLoops = (isNaN(val) || val < 1) ? 1 : val; updateQueueStatusUI(); });
+        document.getElementById('btn-play-all').addEventListener('click', () => { if(sourceTracks.length > 0) { playbackQueue = [...sourceTracks]; rebuildQueue(true); playFromQueue(0); } });
+
+        function rebuildQueue(resetIndex = true) {
+            const currentTrack = (currentQueueIndex >= 0 && currentQueueIndex < playbackQueue.length) ? playbackQueue[currentQueueIndex] : null;
+            if (isShuffle) {
+                let shuffled = [...sourceTracks];
+                for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+                playbackQueue = shuffled;
+            } else { playbackQueue = [...sourceTracks]; }
+
+            if (resetIndex) { currentQueueIndex = playbackQueue.length > 0 ? 0 : -1; currentLoopIteration = 1; } 
+            else if (currentTrack) { currentQueueIndex = playbackQueue.findIndex(t => t.id === currentTrack.id); }
+            updateQueueStatusUI();
+        }
+
+        function updateQueueStatusUI() {
+            document.getElementById('lbl-in-queue-prefix').innerHTML = `${t('inQueuePrefix')} <span id="queue-count" class="queue-badge">${playbackQueue.length}</span>`;
+            document.getElementById('loop-counter-status').innerText = t('loopCounter').replace('{curr}', currentLoopIteration).replace('{total}', targetLoops);
+        }
+
+        function playFromQueue(index) {
+            if (index < 0 || index >= playbackQueue.length) return;
+            currentQueueIndex = index; const track = playbackQueue[currentQueueIndex];
+            
+            audioPlayer.src = track.isRemote ? track.audioPath : `file://${track.audioPath}`; 
+            audioPlayer.play();
+            document.getElementById('btn-play-pause').innerText = '⏸';
+            document.getElementById('player-title').innerText = track.title;
+            document.getElementById('player-artist').innerText = track.artist;
+            
+            const playerArt = document.getElementById('player-art');
+            if (track.artworkPath) { playerArt.src = track.isRemote ? track.artworkPath : `file://${track.artworkPath}`; playerArt.style.display = 'block'; } 
+            else { playerArt.style.display = 'none'; }
+            updateQueueStatusUI();
+        }
+
+        audioPlayer.addEventListener('ended', () => {
+            if (isRepeatTrack) { playFromQueue(currentQueueIndex); return; }
+            if (currentQueueIndex < playbackQueue.length - 1) { playFromQueue(currentQueueIndex + 1); } 
+            else {
+                if (currentLoopIteration < targetLoops) {
+                    currentLoopIteration++;
+                    if (isShuffle) rebuildQueue(true); else currentQueueIndex = 0;
+                    playFromQueue(0);
+                } else {
+                    document.getElementById('btn-play-pause').innerText = '▶'; currentQueueIndex = -1; currentLoopIteration = 1; updateQueueStatusUI();
+                }
+            }
+        });
+
+        document.getElementById('btn-next').addEventListener('click', () => {
+            if (currentQueueIndex < playbackQueue.length - 1) playFromQueue(currentQueueIndex + 1);
+            else if (currentLoopIteration < targetLoops) { currentLoopIteration++; if (isShuffle) rebuildQueue(true); else currentQueueIndex = 0; playFromQueue(0); }
+        });
+        document.getElementById('btn-prev').addEventListener('click', () => { if (currentQueueIndex > 0) playFromQueue(currentQueueIndex - 1); });
+        document.getElementById('btn-play-pause').addEventListener('click', (e) => {
+            if (audioPlayer.paused) { if (audioPlayer.src) { audioPlayer.play(); e.target.innerText = '⏸'; } else if (playbackQueue.length > 0) { playFromQueue(0); } } 
+            else { audioPlayer.pause(); e.target.innerText = '▶'; }
+        });
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (!isNaN(audioPlayer.duration)) {
+                document.getElementById('progress-bar').value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                document.getElementById('time-current').innerText = formatTime(audioPlayer.currentTime);
+            }
+        });
+        audioPlayer.addEventListener('loadedmetadata', () => document.getElementById('time-total').innerText = formatTime(audioPlayer.duration));
+        document.getElementById('progress-bar').addEventListener('input', (e) => { if (audioPlayer.duration) audioPlayer.currentTime = (e.target.value / 100) * audioPlayer.duration; });
+        document.getElementById('volume-slider').addEventListener('input', (e) => audioPlayer.volume = e.target.value);
+        function formatTime(secs) { const m = Math.floor(secs / 60); const s = Math.floor(secs % 60); return `${m}:${s < 10 ? '0' : ''}${s}`; }
+
+        // Кнопки окна
+        document.getElementById('win-min').addEventListener('click', () => window.electronAPI.minimizeWindow());
+        document.getElementById('win-max').addEventListener('click', () => window.electronAPI.maximizeWindow());
+        document.getElementById('win-close').addEventListener('click', () => window.electronAPI.closeWindow());
+    </script>
+</body>
+</html>

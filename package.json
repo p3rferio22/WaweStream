@@ -1,0 +1,16 @@
+{
+  "name": "my-music-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.2",
+    "electron-store": "^8.1.0",
+    "youtube-dl-exec": "^3.1.9"
+  },
+  "devDependencies": {
+    "electron": "^43.1.0"
+  }
+}
