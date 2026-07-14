@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вайб — Музичний Стрімінг</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --sidebar-color: #000000;
+            --card-color: #181818;
+            --card-hover: #282828;
+            --primary-color: #1db954; /* Зелений бренд */
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --border-color: #282828;
+            --progress-track: #4f4f4f;
+            --shadow-color: rgba(0, 0, 0, 0.5);
+        }
+
+        /* Світла тема: активується атрибутом data-theme="light" на <html> */
+        html[data-theme="light"] {
+            --bg-color: #ffffff;
+            --sidebar-color: #f5f5f5;
+            --card-color: #f0f0f0;
+            --card-hover: #e3e3e3;
+            --primary-color: #1db954; /* Бренд лишається впізнаваним */
+            --text-main: #121212;
+            --text-muted: #5e5e5e;
+            --border-color: #dcdcdc;
+            --progress-track: #d1d1d1;
+            --shadow-color: rgba(0, 0, 0, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            grid-template-rows: 1fr 90px;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        /* Бокове меню */
+        aside {
+            background-color: var(--sidebar-color);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .menu-item {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.2s;
+            cursor: pointer;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            color: var(--text-main);
+        }
+
+        /* Перемикач теми */
+        .theme-toggle {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 12px;
+            cursor: pointer;
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 13px;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--card-hover);
+        }
+
+        .theme-toggle .icon {
+            font-size: 15px;
+        }
+
+        /* Головний контент */
+        main {
+            padding: 30px;
+            overflow-y: auto;
+            background: linear-gradient(to bottom, var(--card-hover), var(--bg-color) 40%);
+            transition: background 0.25s ease;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+        }
+
+        /* Картка треку */
+        .card {
+            background-color: var(--card-color);
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            position: relative;
+            box-shadow: 0 2px 8px var(--shadow-color);
+        }
+
+        .card:hover {
+            background-color: var(--card-hover);
+        }
+
+        .card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-artist {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* Кнопка "лайк" на картці треку */
+        .like-btn {
+            position: absolute;
+            top: 26px;
+            right: 26px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background-color: rgba(0, 0, 0, 0.55);
+            color: #ffffff;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .card:hover .like-btn,
+        .like-btn.liked {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .like-btn.liked {
+            color: #ff4d6d;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .like-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* Лайк у нижній панелі плеєра */
+        .player-like-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 17px;
+            cursor: pointer;
+            transition: color 0.2s ease, transform 0.15s ease;
+        }
+
+        .player-like-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .player-like-btn.liked {
+            color: #ff4d6d;
+        }
+
+        /* Спливне сповіщення (toast) */
+        .toast {
+            position: fixed;
+            bottom: 110px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background-color: var(--card-hover);
+            color: var(--text-main);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 4px 16px var(--shadow-color);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 100;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Нижня панель плеєра */
+        footer {
+            grid-column: 1 / -1;
+            background-color: var(--card-color);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            transition: background-color 0.25s ease, border-color 0.25s ease;
+        }
+
+        .current-track {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 30%;
+        }
+
+        .current-track img {
+            width: 56px;
+            height: 56px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
+        .player-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 40%;
+        }
+
+        .control-buttons {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .btn:hover {
+            color: var(--text-main);
+        }
+
+        .btn-play {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: transform 0.15s ease, background-color 0.2s ease;
+        }
+
+        .btn-play:hover {
+            transform: scale(1.05);
+            color: #ffffff;
+            background-color: var(--primary-color);
+            filter: brightness(1.1);
+        }
+
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .time {
+            font-size: 11px;
+            color: var(--text-muted);
+            min-width: 30px;
+        }
+
+        .progress-bar {
+            flex-grow: 1;
+            height: 4px;
+            background-color: var(--progress-track);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.25s ease;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .volume-controls {
+            width: 30%;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-bar {
+            width: 100px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="logo">🎵 Вайб</div>
+        <a class="menu-item active">Головна</a>
+        <a class="menu-item">Пошук</a>
+        <a class="menu-item">Ваша медіатека</a>
+
+        <button class="theme-toggle" id="theme-toggle" aria-label="Перемкнути тему оформлення">
+            <span class="icon" id="theme-icon">🌙</span>
+            <span id="theme-label">Темна тема</span>
+        </button>
+    </aside>
+
+    <main>
+        <h2>Популярні треки</h2>
+        <div class="grid" id="tracks-grid">
+            </div>
+    </main>
+
+    <footer>
+        <div class="current-track">
+            <img id="current-cover" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=150" alt="Обкладинка">
+            <div>
+                <div id="current-title" class="card-title">Оберіть трек</div>
+                <div id="current-artist" class="card-artist">-</div>
+            </div>
+            <button class="player-like-btn" id="player-like-btn" aria-label="Лайкнути поточний трек">♡</button>
+        </div>
+
+        <div class="player-controls">
+            <div class="control-buttons">
+                <button class="btn" id="btn-prev">⏮</button>
+                <button class="btn btn-play" id="btn-play">▶</button>
+                <button class="btn" id="btn-next">⏭</button>
+            </div>
+            <div class="progress-container">
+                <span class="time" id="time-current">0:00</span>
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <span class="time" id="time-total">0:00</span>
+            </div>
+        </div>
+
+        <div class="volume-controls">
+            <span>🔊</span>
+            <input type="range" class="volume-bar" id="volume" min="0" max="1" step="0.1" value="0.7">
+        </div>
+    </footer>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // База даних треків (використовуємо безкоштовні інструментальні аудіо-лінки)
+        const playlist = [
+            {
+                id: 0,
+                title: "Енергійний Вайб",
+                artist: "Lo-Fi Спільнота",
+                cover: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300",
+                url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+            },
+            {
+                id: 1,
+                title: "Вечірній Чілл",
+                artist: "Нічний Драйв",
+                cover: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300",
+                url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+            },
+            {
+                id: 2,
+                title: "Ретро Хвиля",
+                artist: "Синт-Майстер",
+                cover: "https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=300",
+                url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+            }
+        ];
+
+        let currentTrackIndex = 0;
+        let isPlaying = false;
+        const audio = new Audio();
+
+        // Елементи DOM
+        const grid = document.getElementById('tracks-grid');
+        const playBtn = document.getElementById('btn-play');
+        const prevBtn = document.getElementById('btn-prev');
+        const nextBtn = document.getElementById('btn-next');
+        const progressBar = document.getElementById('progress-bar');
+        const progress = document.getElementById('progress');
+        const timeCurrent = document.getElementById('time-current');
+        const timeTotal = document.getElementById('time-total');
+        const volumeSlider = document.getElementById('volume');
+
+        const currentCover = document.getElementById('current-cover');
+        const currentTitle = document.getElementById('current-title');
+        const currentArtist = document.getElementById('current-artist');
+
+        // Рендеринг карток на сторінку
+        function renderTracks() {
+            grid.innerHTML = playlist.map((track, index) => `
+                <div class="card" onclick="selectTrack(${index})">
+                    <button class="like-btn ${isLiked(track.id) ? 'liked' : ''}" data-track-id="${track.id}" onclick="event.stopPropagation(); toggleLike(${track.id})" aria-label="Лайкнути трек">${isLiked(track.id) ? '♥' : '♡'}</button>
+                    <img src="${track.cover}" alt="${track.title}">
+                    <div class="card-title">${track.title}</div>
+                    <div class="card-artist">${track.artist}</div>
+                </div>
+            `).join('');
+        }
+
+        // Завантаження треку в плеєр
+        function loadTrack(index) {
+            currentTrackIndex = index;
+            const track = playlist[currentTrackIndex];
+            audio.src = track.url;
+            currentCover.src = track.cover;
+            currentTitle.textContent = track.title;
+            currentArtist.textContent = track.artist;
+            updatePlayerLikeBtn();
+        }
+
+        function selectTrack(index) {
+            loadTrack(index);
+            playTrack();
+        }
+
+        function playTrack() {
+            isPlaying = true;
+            audio.play();
+            playBtn.textContent = '⏸';
+        }
+
+        function pauseTrack() {
+            isPlaying = false;
+            audio.pause();
+            playBtn.textContent = '▶';
+        }
+
+        // Кліки на кнопки керування
+        playBtn.addEventListener('click', () => {
+            if (isPlaying) pauseTrack(); else playTrack();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            let nextIndex = currentTrackIndex + 1;
+            if (nextIndex >= playlist.length) nextIndex = 0;
+            selectTrack(nextIndex);
+        });
+
+        prevBtn.addEventListener('click', () => {
+            let prevIndex = currentTrackIndex - 1;
+            if (prevIndex < 0) prevIndex = playlist.length - 1;
+            selectTrack(prevIndex);
+        });
+
+        // Оновлення таймерів та прогрес-бару
+        audio.addEventListener('timeupdate', () => {
+            const { duration, currentTime } = audio;
+            if (duration) {
+                const progressPercent = (currentTime / duration) * 100;
+                progress.style.width = `${progressPercent}%`;
+                
+                // Форматування часу
+                timeCurrent.textContent = formatTime(currentTime);
+                timeTotal.textContent = formatTime(duration);
+            }
+        });
+
+        // Перемотка треку кліком по прогрес-бару
+        progressBar.addEventListener('click', (e) => {
+            const width = progressBar.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audio.duration;
+            if (duration) {
+                audio.currentTime = (clickX / width) * duration;
+            }
+        });
+
+        // Зміна гучності
+        volumeSlider.addEventListener('input', (e) => {
+            audio.volume = e.target.value;
+        });
+
+        // Автоперемикання після завершення треку
+        audio.addEventListener('ended', () => nextBtn.click());
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        // --- Перемикання теми оформлення (темна / світла) ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const themeLabel = document.getElementById('theme-label');
+        const THEME_KEY = 'vibe-theme';
+
+        function applyTheme(theme) {
+            if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                themeIcon.textContent = '☀️';
+                themeLabel.textContent = 'Світла тема';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeIcon.textContent = '🌙';
+                themeLabel.textContent = 'Темна тема';
+            }
+        }
+
+        function getPreferredTheme() {
+            const saved = localStorage.getItem(THEME_KEY);
+            if (saved === 'light' || saved === 'dark') return saved;
+            // Якщо вибір ще не збережено — орієнтуємось на системні налаштування
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            const newTheme = isLight ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem(THEME_KEY, newTheme);
+        });
+
+        // Застосовуємо тему одразу при завантаженні, щоб уникнути "спалаху" не тієї теми
+        applyTheme(getPreferredTheme());
+
+        // --- Лайки треків ---
+        const LIKES_KEY = 'vibe-liked-tracks';
+        const playerLikeBtn = document.getElementById('player-like-btn');
+
+        function getLikedIds() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(LIKES_KEY));
+                return Array.isArray(saved) ? saved : [];
+            } catch {
+                return [];
+            }
+        }
+
+        function isLiked(trackId) {
+            return getLikedIds().includes(trackId);
+        }
+
+        function toggleLike(trackId) {
+            const liked = getLikedIds();
+            const index = liked.indexOf(trackId);
+            let nowLiked;
+            if (index === -1) {
+                liked.push(trackId);
+                nowLiked = true;
+            } else {
+                liked.splice(index, 1);
+                nowLiked = false;
+            }
+            localStorage.setItem(LIKES_KEY, JSON.stringify(liked));
+
+            // Оновлюємо іконку на відповідній картці
+            const cardBtn = grid.querySelector(`.like-btn[data-track-id="${trackId}"]`);
+            if (cardBtn) {
+                cardBtn.classList.toggle('liked', nowLiked);
+                cardBtn.textContent = nowLiked ? '♥' : '♡';
+            }
+
+            // Якщо це поточний трек — оновлюємо і кнопку в плеєрі
+            if (playlist[currentTrackIndex].id === trackId) {
+                updatePlayerLikeBtn();
+            }
+
+            showToast(nowLiked ? 'Додано до улюблених' : 'Видалено з улюблених');
+        }
+
+        function updatePlayerLikeBtn() {
+            const track = playlist[currentTrackIndex];
+            const liked = isLiked(track.id);
+            playerLikeBtn.classList.toggle('liked', liked);
+            playerLikeBtn.textContent = liked ? '♥' : '♡';
+        }
+
+        playerLikeBtn.addEventListener('click', () => {
+            toggleLike(playlist[currentTrackIndex].id);
+        });
+
+        // --- Toast-сповіщення ---
+        const toast = document.getElementById('toast');
+        let toastTimeout;
+
+        function showToast(message) {
+            clearTimeout(toastTimeout);
+            toast.textContent = message;
+            toast.classList.add('show');
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2200);
+        }
+
+        // Ініціалізація додатку
+        renderTracks();
+        loadTrack(0); // завантажуємо перший трек за замовчуванням
+        audio.volume = volumeSlider.value;
+    </script>
+</body>
+</html>
